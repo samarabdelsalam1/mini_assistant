@@ -1,3 +1,5 @@
+require "langchain"
+
 module Assistant
   class ChatService
     def self.call(prompt:)
@@ -9,87 +11,31 @@ module Assistant
     end
 
     def call
-      messages = build_messages
-      client = OpenAI::Client.new
-      max_iterations = 5
-      iteration = 0
+      assistant = Langchain::Assistant.new(
+        llm: default_llm,
+        tools: [CookieMenuTool.new], 
+        instructions: "You are the Cozy Cookies assistant. Use your tools to answer customer questions."
+      )
 
-      loop do
-        iteration += 1
-        break if iteration > max_iterations
-
-        response = client.chat(
-          parameters: {
-            model: ENV.fetch("OPENAI_MODEL", "llama3.2:1b"),
-            messages: messages,
-            tools: shop_tools
-          }
-        )
-
-        assistant_message = response.dig("choices", 0, "message")
-        messages << assistant_message
-
-        if assistant_message["tool_calls"].present?
-          assistant_message["tool_calls"].each do |tool_call|
-            function_name = tool_call.dig("function", "name")
-            arguments = JSON.parse(tool_call.dig("function", "arguments"))
-            result = execute_local_tool(function_name, arguments)
-
-            messages << {
-              role: "tool",
-              tool_call_id: tool_call["id"],
-              content: result.to_json
-            }
-          end
-        else
-          return assistant_message["content"]
-        end
-      end
+      assistant.add_message(role: "user", content: @prompt)
+      assistant.run(auto_tool_execution: true)
+      
+      assistant.messages.last.content
     end
 
     private
 
-    def build_messages
-      [
-        { role: "system", content: "You are the Cozy Cookies assistant. Use your tools to answer customer questions." },
-        { role: "user", content: @prompt }
-      ]
-    end
+    # Centralize your config here instead of an initializer
 
-    def shop_tools
-      [
-        {
-          type: "function",
-          function: {
-            name: "check_cookie_price",
-            deescription: "Get the current price for a specific cookie flavor.",
-            parameters: {
-              type: "object",
-              properties: {
-                flavor: { type: "string", description: "e.g., peanut_butter, chocolate, biscoff" }
-              },
-              required: ["flavor"]
-            }
-          }
+    def default_llm
+      llm ||= Langchain::LLM::OpenAI.new(
+        api_key: ENV.fetch("LLM_API_KEY"),
+        llm_options: { uri_base: ENV.fetch("LLM_BASE_URL", nil) }.compact,
+        default_options: {
+          chat_model: ENV.fetch("LLM_MODEL")  
         }
-      ]
+      )
     end
 
-    def execute_local_tool(name, args)
-      if name == "check_cookie_price"
-        flavor = args["flavor"]
-
-        case flavor
-        when "peanut_butter"
-          { price: "160 LE", status: "in_stock" }
-        when "biscoff"
-          { price: "180 LE", status: "in_stock" }
-        else
-          { error: "Flavor not found in our menu." }
-        end
-      else
-        { error: "Unknown tool" }
-      end
-    end
   end
 end

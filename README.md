@@ -25,9 +25,9 @@ Create a `.env` file in the project root before starting the app.
 Copy the values from `.env.example` and replace them with the appropriate values for your environment.
 
 Example variables:
-- `OPENAI_API_KEY`: API key for the LLM provider
-- `OPENAI_BASE_URL`: base URL for the OpenAI-compatible endpoint
-- `OPENAI_MODEL`: model name to use for chat requests
+- `LLM_API_KEY`: API key for the LLM provider
+- `LLM_BASE_URL`: base URL for the OpenAI-compatible endpoint
+- `LLM_MODEL`: model name to use for chat requests
 
 ## Setup
 
