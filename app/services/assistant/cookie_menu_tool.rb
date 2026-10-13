@@ -6,7 +6,12 @@ module Assistant
         DESCRIPTION = "Access the Cozy Cookies menu and pricing."
         
         define_function :check_cookie_price, description: "Get the current price for a specific cookie flavor." do
-            property :flavor, type: "string", description: "e.g., peanut_butter, chocolate, biscoff", required: true
+            property :flavor, 
+                     type: "string",
+                     description: "e.g., peanut_butter, chocolate, biscoff", 
+                     required: true,
+                     enum: ["peanut_butter", "biscoff", "chocolate_chips"]
+            
         end
 
         def check_cookie_price(flavor:)
