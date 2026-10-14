@@ -16,6 +16,12 @@ module Assistant
         super
       end
     end
+    
+    class AssistantFailed < Base
+      def initialize(msg = "Sorry, I couldn't complete that request. Please try rephrasing your question.")
+        super
+      end
+    end
 
   end
 end

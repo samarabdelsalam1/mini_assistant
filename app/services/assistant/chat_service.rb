@@ -3,6 +3,7 @@ require "langchain"
 module Assistant
   class ChatService
     MAX_PROMPT_LENGTH = 1_000
+    MAX_TOOL_CALLS = 5
     INSTRUCTIONS = <<~TEXT.freeze
       You are the Cozy Cookies assistant. Only answer questions about our cookie
       flavors, prices, and availability.
@@ -41,16 +42,25 @@ module Assistant
     end
 
     def run_assistant
+      tool_calls = 0
+        limiter = lambda do |id, _tool, _method, _args|
+                    tool_calls += 1
+                    raise Errors::AssistantFailed, "tool call limit (#{MAX_TOOL_CALLS}) exceeded for #{id}" if tool_calls > MAX_TOOL_CALLS
+                  end
       assistant = Langchain::Assistant.new(
           llm: default_llm,
           tools: [CookieMenuTool.new],
-          instructions: INSTRUCTIONS
+          instructions: INSTRUCTIONS,
+          tool_execution_callback: limiter
         )
 
         assistant.add_message(role: "user", content: @prompt)
         assistant.run(auto_tool_execution: :auto)
 
-        assistant.messages.last.content
+        answer = assistant.messages.last.content
+        raise Errors::AssistantFailed if assistant.state == :failed || answer.blank?
+
+        answer
     end
 
     def validate_prompt!
