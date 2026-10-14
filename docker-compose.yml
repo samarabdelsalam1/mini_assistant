@@ -1,23 +1,37 @@
 services:
+  db:
+    image: postgres:15-alpine
+    container_name: mini_assistant_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+
   web:
     build:
       context: .
       dockerfile: Dockerfile.development
     env_file: .env 
     container_name: mini_assistant_web
+    user: "${UID:-1000}:${GID:-1000}" # <--- ADD THIS LINE
     ports:
       - "3000:3000"
+    depends_on:
+      - db
     extra_hosts:
       - "host.docker.internal:host-gateway"  
     volumes:
       - .:/app
-      - bundle_cache:/usr/local/bundle
-      - sqlite_data:/app/storage
     environment:
-      RAILS_ENV: development   
+      RAILS_ENV: development
+      # Pass the DB connection string to Rails
+      DATABASE_URL: postgres://postgres:password@db:5432/mini_assistant_development
     stdin_open: true
     tty: true
 
 volumes:
   bundle_cache:
-  sqlite_data:
+  postgres_data:
