@@ -1,5 +1,8 @@
 FROM ruby:3.3-slim
 
+ARG USER_ID=1000
+ARG GROUP_ID=1000
+
 RUN apt-get update -qq && apt-get install -y \
     build-essential \
     libpq-dev \
@@ -8,16 +11,23 @@ RUN apt-get update -qq && apt-get install -y \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
+# Real user with a real home directory (-o tolerates GIDs that already exist, e.g. on macOS)
+RUN groupadd -o -g ${GROUP_ID} app \
+    && useradd -o -m -u ${USER_ID} -g ${GROUP_ID} -s /bin/bash app \
+    && mkdir -p /app \
+    && chown -R ${USER_ID}:${GROUP_ID} /app /usr/local/bundle
+
+# Entrypoint must be copied while still root (/usr/bin isn't writable by app)
+COPY entrypoint.sh /usr/bin/entrypoint.sh
+RUN chmod +x /usr/bin/entrypoint.sh
+
+USER app
 WORKDIR /app
 
-COPY Gemfile Gemfile.lock ./
-# NEW: Install gems, then make the bundle folder writable by any user
-RUN bundle install && chmod -R a+rw /usr/local/bundle
+COPY --chown=app:app Gemfile Gemfile.lock ./
+RUN bundle install
 
-COPY . .
-
-COPY entrypoint.sh /usr/bin/
-RUN chmod +x /usr/bin/entrypoint.sh
+COPY --chown=app:app . .
 
 EXPOSE 3000
 

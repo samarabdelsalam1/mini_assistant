@@ -14,9 +14,11 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.development
+      args:
+        USER_ID: ${USER_ID:-1000}
+        GROUP_ID: ${GROUP_ID:-1000}
     env_file: .env 
     container_name: mini_assistant_web
-    user: "${UID:-1000}:${GID:-1000}" # <--- ADD THIS LINE
     ports:
       - "3000:3000"
     depends_on:
@@ -33,5 +35,4 @@ services:
     tty: true
 
 volumes:
-  bundle_cache:
   postgres_data:
