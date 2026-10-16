@@ -1,7 +1,10 @@
 class AssistantController < ApplicationController
   def chat
-    answer = Assistant::ChatService.call(prompt: params[:prompt])
+    result = Assistant::ChatService.call(
+      prompt: params[:prompt],
+      conversation_id: params[:conversation_id]
+    )
 
-    render json: { answer: answer }
+    render json: result
   end
 end

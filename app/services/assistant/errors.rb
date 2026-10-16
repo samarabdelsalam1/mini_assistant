@@ -1,4 +1,3 @@
-# app/services/assistant/errors.rb
 module Assistant
   module Errors
     class Base < StandardError; end
